@@ -1,0 +1,55 @@
+# EXCEPTIONS IN PYTHON
+
+
+# TRY / EXCEPT
+
+try:
+    numero = int(input("Ingresa un número: "))
+    resultado = 10 / numero
+    print(resultado)
+
+except ValueError:
+    print("Debes ingresar un número válido")
+
+except ZeroDivisionError:
+    print("No puedes dividir entre cero")
+
+
+# ELSE
+# Se ejecuta solamente si no ocurrió ningún error.
+
+try:
+    numero = int("10")
+
+except ValueError:
+    print("Ocurrió un error")
+
+else:
+    print("La conversión fue exitosa")
+
+
+# FINALLY
+# Se ejecuta siempre, haya error o no.
+
+try:
+    resultado = 10 / 2
+
+except ZeroDivisionError:
+    print("No puedes dividir entre cero")
+
+finally:
+    print("El proceso terminó")
+
+
+# RAISE
+# Permite provocar manualmente una excepción.
+
+def verificar_edad(edad):
+
+    if edad < 0:
+        raise ValueError("La edad no puede ser negativa")
+
+    return edad
+
+
+print(verificar_edad(25))
