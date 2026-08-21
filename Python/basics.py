@@ -1,7 +1,6 @@
-print("Hello, GitHub!")
+precio = 50
+cantidad = 3
 
-name = "Diego"
-age = 27
+total = precio * cantidad
 
-print(name)
-print(age)
+print(total)
