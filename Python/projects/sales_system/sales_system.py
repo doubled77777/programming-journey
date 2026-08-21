@@ -1,25 +1,40 @@
-# SISTEMA DE VENTAS - VERSION 4
+# SISTEMA DE VENTAS - VERSION 5
 
-producto = input("Ingresa el producto: ")
+productos = {
+    "laptop": 2500,
+    "mouse": 80,
+    "teclado": 150
+}
 
-try:
-    precio = float(input("Ingresa el precio: "))
-    cantidad = int(input("Ingresa la cantidad: "))
+print("--- PRODUCTOS DISPONIBLES ---")
 
-    if precio <= 0:
-        raise ValueError("El precio debe ser mayor que 0.")
+for producto, precio in productos.items():
+    print(producto, "-", precio)
 
-    if cantidad <= 0:
-        raise ValueError("La cantidad debe ser mayor que 0.")
 
-except ValueError as error:
-    print("Error:", error)
+producto = input("\nIngresa el producto: ").lower()
+
+if producto in productos:
+
+    precio = productos[producto]
+
+    try:
+        cantidad = int(input("Ingresa la cantidad: "))
+
+        if cantidad <= 0:
+            raise ValueError("La cantidad debe ser mayor que 0.")
+
+    except ValueError as error:
+        print("Error:", error)
+
+    else:
+        subtotal = precio * cantidad
+
+        print("\n--- RESUMEN DE COMPRA ---")
+        print("Producto:", producto)
+        print("Precio:", precio)
+        print("Cantidad:", cantidad)
+        print("Subtotal:", subtotal)
 
 else:
-    subtotal = precio * cantidad
-
-    print("\n--- RESUMEN DE COMPRA ---")
-    print("Producto:", producto)
-    print("Precio:", precio)
-    print("Cantidad:", cantidad)
-    print("Subtotal:", subtotal)
+    print("El producto no existe.")
