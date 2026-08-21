@@ -1,4 +1,4 @@
-# SISTEMA DE VENTAS - VERSION 5
+# SISTEMA DE VENTAS - VERSION 6
 
 productos = {
     "laptop": 2500,
@@ -6,17 +6,23 @@ productos = {
     "teclado": 150
 }
 
+carrito = []
+
 print("--- PRODUCTOS DISPONIBLES ---")
 
 for producto, precio in productos.items():
     print(producto, "-", precio)
 
+while True:
 
-producto = input("\nIngresa el producto: ").lower()
+    producto = input("\nIngresa un producto (o 'salir'): ").lower()
 
-if producto in productos:
+    if producto == "salir":
+        break
 
-    precio = productos[producto]
+    if producto not in productos:
+        print("El producto no existe.")
+        continue
 
     try:
         cantidad = int(input("Ingresa la cantidad: "))
@@ -26,15 +32,34 @@ if producto in productos:
 
     except ValueError as error:
         print("Error:", error)
+        continue
 
-    else:
-        subtotal = precio * cantidad
+    precio = productos[producto]
+    subtotal = precio * cantidad
 
-        print("\n--- RESUMEN DE COMPRA ---")
-        print("Producto:", producto)
-        print("Precio:", precio)
-        print("Cantidad:", cantidad)
-        print("Subtotal:", subtotal)
+    carrito.append({
+        "producto": producto,
+        "precio": precio,
+        "cantidad": cantidad,
+        "subtotal": subtotal
+    })
 
-else:
-    print("El producto no existe.")
+    print("Producto agregado al carrito.")
+
+
+print("\n--- RESUMEN DE COMPRA ---")
+
+total = 0
+
+for venta in carrito:
+    print(
+        venta["producto"],
+        "- Cantidad:",
+        venta["cantidad"],
+        "- Subtotal:",
+        venta["subtotal"]
+    )
+
+    total += venta["subtotal"]
+
+print("\nTOTAL:", total)
