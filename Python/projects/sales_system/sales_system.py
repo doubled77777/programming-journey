@@ -1,4 +1,4 @@
-# SISTEMA DE VENTAS - VERSION 7
+# SISTEMA DE VENTAS - VERSION 8
 
 productos = {
     "laptop": 2500,
@@ -73,6 +73,21 @@ def calcular_total():
     return total
 
 
+def calcular_descuento(total):
+
+    if total < 500:
+        return 0
+
+    elif total < 1000:
+        return 5
+
+    elif total < 2000:
+        return 10
+
+    else:
+        return 15
+
+
 mostrar_productos()
 
 while True:
@@ -87,4 +102,14 @@ mostrar_carrito()
 
 total = calcular_total()
 
-print("\nTOTAL:", total)
+descuento = calcular_descuento(total)
+
+monto_descuento = total * descuento / 100
+
+total_final = total - monto_descuento
+
+print("\n--- TOTAL DE LA COMPRA ---")
+print("Subtotal:", total)
+print("Descuento:", descuento, "%")
+print("Ahorro:", monto_descuento)
+print("TOTAL FINAL:", total_final)
