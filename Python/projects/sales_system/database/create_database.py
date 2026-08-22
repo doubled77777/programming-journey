@@ -15,8 +15,8 @@ CREATE TABLE IF NOT EXISTS productos (
 """)
 
 cursor.execute("""
-INSERT INTO productos (nombre, precio)
-VALUES ('Laptop', 2500)
+INSERT OR IGNORE INTO productos (id, nombre, precio)
+VALUES (1, 'Laptop', 2500)
 """)
 
 conexion.commit()
