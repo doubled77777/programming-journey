@@ -1,23 +1,25 @@
 import sqlite3
+from pathlib import Path
 
-conexion = sqlite3.connect(
-    "Python/projects/sales_system/database/sales.db"
-)
+
+BASE_DIR = Path(__file__).resolve().parent
+DB_PATH = BASE_DIR / "sales.db"
+
+conexion = sqlite3.connect(DB_PATH)
 
 cursor = conexion.cursor()
 
 
-# Crear tabla de productos
 cursor.execute("""
 CREATE TABLE IF NOT EXISTS productos (
     id INTEGER PRIMARY KEY,
     nombre TEXT NOT NULL,
-    precio REAL NOT NULL
+    precio REAL NOT NULL,
+    stock INTEGER NOT NULL DEFAULT 0
 )
 """)
 
 
-# Crear tabla de ventas
 cursor.execute("""
 CREATE TABLE IF NOT EXISTS ventas (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -29,41 +31,33 @@ CREATE TABLE IF NOT EXISTS ventas (
 """)
 
 
-# Agregar productos iniciales
 cursor.execute("""
-INSERT OR IGNORE INTO productos (id, nombre, precio)
-VALUES (1, 'Laptop', 2500)
+INSERT OR IGNORE INTO productos
+(id, nombre, precio, stock)
+VALUES (1, 'Laptop', 2500, 10)
 """)
 
 cursor.execute("""
-INSERT OR IGNORE INTO productos (id, nombre, precio)
-VALUES (2, 'Mouse', 80)
+INSERT OR IGNORE INTO productos
+(id, nombre, precio, stock)
+VALUES (2, 'Mouse', 80, 30)
 """)
 
 cursor.execute("""
-INSERT OR IGNORE INTO productos (id, nombre, precio)
-VALUES (3, 'Teclado', 150)
-""")
-
-
-# Corregir precio del Mouse
-cursor.execute("""
-UPDATE productos
-SET precio = 80
-WHERE id = 2
+INSERT OR IGNORE INTO productos
+(id, nombre, precio, stock)
+VALUES (3, 'Teclado', 150, 20)
 """)
 
 
 conexion.commit()
 
 
-# Comprobar productos
 cursor.execute("SELECT * FROM productos")
 
 productos = cursor.fetchall()
 
 print("Productos encontrados:")
 print(productos)
-
 
 conexion.close()

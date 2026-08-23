@@ -1,10 +1,12 @@
 import sqlite3
+from pathlib import Path
 
 
-conexion = sqlite3.connect(
-    "Python/projects/sales_system/database/sales.db"
-)
+# Buscar la base de datos correctamente
+BASE_DIR = Path(__file__).resolve().parent
+DB_PATH = BASE_DIR / "database" / "sales.db"
 
+conexion = sqlite3.connect(DB_PATH)
 cursor = conexion.cursor()
 
 carrito = []
@@ -20,20 +22,22 @@ def mostrar_productos():
         print(
             f"{producto[0]}. "
             f"{producto[1]} - "
-            f"S/ {producto[2]}"
+            f"S/ {producto[2]} - "
+            f"Stock: {producto[3]}"
         )
 
 
 def agregar_producto():
     nombre = input("Nombre del producto: ")
     precio = float(input("Precio: "))
+    stock = int(input("Stock inicial: "))
 
     cursor.execute(
         """
-        INSERT INTO productos (nombre, precio)
-        VALUES (?, ?)
+        INSERT INTO productos (nombre, precio, stock)
+        VALUES (?, ?, ?)
         """,
-        (nombre, precio)
+        (nombre, precio, stock)
     )
 
     conexion.commit()
@@ -56,6 +60,14 @@ def agregar_al_carrito():
 
     if producto is None:
         print("Producto no encontrado.")
+        return
+
+    if cantidad <= 0:
+        print("La cantidad debe ser mayor que 0.")
+        return
+
+    if cantidad > producto[3]:
+        print("No hay suficiente stock.")
         return
 
     carrito.append({
@@ -103,6 +115,7 @@ def finalizar_compra():
 
         total += subtotal
 
+        # Guardar venta
         cursor.execute(
             """
             INSERT INTO ventas
@@ -113,6 +126,19 @@ def finalizar_compra():
                 producto["id"],
                 producto["cantidad"],
                 subtotal
+            )
+        )
+
+        # Reducir stock
+        cursor.execute(
+            """
+            UPDATE productos
+            SET stock = stock - ?
+            WHERE id = ?
+            """,
+            (
+                producto["cantidad"],
+                producto["id"]
             )
         )
 
