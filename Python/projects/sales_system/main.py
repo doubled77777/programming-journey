@@ -290,6 +290,44 @@ def historial_ventas():
             f"Fecha: {venta[4]}"
         )
 
+def reporte_ventas():
+    cursor.execute("""
+        SELECT
+            productos.nombre,
+            SUM(ventas.cantidad) AS unidades_vendidas,
+            SUM(ventas.total) AS ingresos
+        FROM ventas
+        INNER JOIN productos
+            ON ventas.producto_id = productos.id
+        GROUP BY productos.id
+        ORDER BY ingresos DESC
+    """)
+
+    reporte = cursor.fetchall()
+
+    if not reporte:
+        print("\nNo hay ventas registradas.")
+        return
+
+    print("\n--- REPORTE DE VENTAS ---")
+
+    total_general = 0
+
+    for producto in reporte:
+        nombre = producto[0]
+        unidades = producto[1]
+        ingresos = producto[2]
+
+        print(
+            f"{nombre} | "
+            f"Unidades: {unidades} | "
+            f"Ingresos: S/ {ingresos}"
+        )
+
+        total_general += ingresos
+
+    print(f"\nINGRESOS TOTALES: S/ {total_general}")        
+
 
 def menu_administrador():
     while True:
@@ -299,7 +337,8 @@ def menu_administrador():
         print("2. Agregar producto")
         print("3. Aumentar stock")
         print("4. Ver historial de ventas")
-        print("5. Volver")
+        print("5. Reporte de ventas")
+        print("6. Volver")
 
         opcion = input("Selecciona una opción: ")
 
@@ -316,6 +355,9 @@ def menu_administrador():
             historial_ventas()
 
         elif opcion == "5":
+            reporte_ventas()
+
+        elif opcion == "6":
             break
 
         else:
