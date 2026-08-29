@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Sales System - Checkout</title>
+
+    <script src="https://sdk.mercadopago.com/js/v2"></script>
+</head>
+
+<body>
+
+    <h1>Sales System</h1>
+    <h2>Checkout</h2>
+
+    <div id="cardPaymentBrick_container"></div>
+
+    <script>
+        const mp = new MercadoPago("APP_USR-d2252a3a-d144-4053-b917-c4ee0a6b2b21", {
+            locale: "es-PE"
+        });
+
+        console.log("Mercado Pago inicializado");
+    </script>
+
+</body>
+</html>
