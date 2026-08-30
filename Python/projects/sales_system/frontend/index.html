@@ -22,7 +22,78 @@
         });
 
         console.log("Mercado Pago inicializado");
+
+        const bricksBuilder = mp.bricks();
+
+        const renderCardPaymentBrick = async () => {
+
+            const settings = {
+                initialization: {
+                    amount: 10,
+                },
+
+                callbacks: {
+
+                    onReady: () => {
+                        console.log("Card Payment Brick listo");
+                    },
+
+                    onSubmit: async (cardFormData) => {
+
+                        console.log("Datos recibidos:", cardFormData);
+
+                        try {
+
+                            const response = await fetch(
+                                "http://localhost:5000/process_order",
+                                {
+                                    method: "POST",
+
+                                    headers: {
+                                        "Content-Type": "application/json"
+                                    },
+
+                                    body: JSON.stringify(cardFormData)
+                                }
+                            );
+
+                            const result = await response.json();
+
+                            console.log(
+                                "Respuesta del backend:",
+                                result
+                            );
+
+                        } catch (error) {
+
+                            console.error(
+                                "Error al conectar con el backend:",
+                                error
+                            );
+
+                        }
+                    },
+
+                    onError: (error) => {
+                        console.error(
+                            "Error del Card Payment Brick:",
+                            error
+                        );
+                    }
+                }
+            };
+
+            window.cardPaymentBrickController =
+                await bricksBuilder.create(
+                    "cardPayment",
+                    "cardPaymentBrick_container",
+                    settings
+                );
+        };
+
+        renderCardPaymentBrick();
     </script>
 
 </body>
 </html>
+```
