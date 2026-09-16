@@ -1,8 +1,10 @@
 import sqlite3
 from pathlib import Path
 from flask import Flask, request, jsonify
+from flask_cors import CORS
 
 app = Flask(__name__)
+CORS(app)
 
 BASE_DIR = Path(__file__).resolve().parent
 DB_PATH = BASE_DIR / "database" / "sales.db"
