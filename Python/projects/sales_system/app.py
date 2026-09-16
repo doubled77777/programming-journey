@@ -1,7 +1,14 @@
+import os
 import sqlite3
+import uuid
 from pathlib import Path
+
+import requests
+from dotenv import load_dotenv
 from flask import Flask, request, jsonify
 from flask_cors import CORS
+
+load_dotenv()
 
 app = Flask(__name__)
 CORS(app)
@@ -9,11 +16,47 @@ CORS(app)
 BASE_DIR = Path(__file__).resolve().parent
 DB_PATH = BASE_DIR / "database" / "sales.db"
 
+MP_ACCESS_TOKEN = os.getenv("MERCADOPAGO_ACCESS_TOKEN")
+
 
 def get_db_connection():
     conexion = sqlite3.connect(DB_PATH)
     conexion.row_factory = sqlite3.Row  # permite acceder a columnas por nombre
     return conexion
+
+
+def cobrar_con_mercadopago(datos_formulario, total):
+    headers = {
+        "Authorization": f"Bearer {MP_ACCESS_TOKEN}",
+        "Content-Type": "application/json",
+        "X-Idempotency-Key": str(uuid.uuid4())
+    }
+
+    payment_payload = {
+        "transaction_amount": total,
+        "token": datos_formulario.get("token"),
+        "installments": datos_formulario.get("installments", 1),
+        "payment_method_id": datos_formulario.get("payment_method_id"),
+        "issuer_id": datos_formulario.get("issuer_id"),
+        "payer": {
+            "email": datos_formulario.get("payer", {}).get("email", "comprador@test.com")
+        }
+    }
+
+    response = requests.post(
+        "https://api.mercadopago.com/v1/payments",
+        headers=headers,
+        json=payment_payload
+    )
+
+    resultado = response.json()
+
+    print("Código de estado HTTP:", response.status_code)
+    print("Respuesta completa de Mercado Pago:", resultado)
+
+    aprobado = resultado.get("status") == "approved"
+
+    return aprobado, resultado.get("status_detail")
 
 
 @app.route("/")
@@ -39,11 +82,12 @@ def process_order():
 
     producto_id = data.get("producto_id")
     cantidad = data.get("cantidad")
+    token = data.get("token")
 
-    if producto_id is None or cantidad is None:
+    if producto_id is None or cantidad is None or token is None:
         return jsonify({
             "status": "error",
-            "message": "Faltan datos: se requiere producto_id y cantidad"
+            "message": "Faltan datos: se requiere producto_id, cantidad y token de la tarjeta"
         }), 400
 
     conexion = get_db_connection()
@@ -71,6 +115,16 @@ def process_order():
 
     total = producto["precio"] * cantidad
 
+    pago_aprobado, detalle_pago = cobrar_con_mercadopago(data, total)
+
+    if not pago_aprobado:
+        conexion.close()
+        return jsonify({
+            "status": "error",
+            "message": "El pago fue rechazado",
+            "detalle": detalle_pago
+        }), 402
+
     cursor.execute(
         "INSERT INTO ventas (producto_id, cantidad, total, fecha) VALUES (?, ?, ?, datetime('now'))",
         (producto_id, cantidad, total)
@@ -85,7 +139,7 @@ def process_order():
 
     return jsonify({
         "status": "success",
-        "message": "Venta registrada correctamente",
+        "message": "Pago aprobado y venta registrada correctamente",
         "total": total
     })
 
