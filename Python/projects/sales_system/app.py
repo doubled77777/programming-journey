@@ -32,21 +32,33 @@ def cobrar_con_mercadopago(datos_formulario, total):
         "X-Idempotency-Key": str(uuid.uuid4())
     }
 
-    payment_payload = {
-        "transaction_amount": total,
-        "token": datos_formulario.get("token"),
-        "installments": datos_formulario.get("installments", 1),
-        "payment_method_id": datos_formulario.get("payment_method_id"),
-        "issuer_id": datos_formulario.get("issuer_id"),
+    order_payload = {
+        "type": "online",
+        "external_reference": str(uuid.uuid4()),
+        "processing_mode": "automatic",
+        "total_amount": f"{total:.2f}",
         "payer": {
             "email": datos_formulario.get("payer", {}).get("email", "comprador@test.com")
+        },
+        "transactions": {
+            "payments": [
+                {
+                    "amount": f"{total:.2f}",
+                    "payment_method": {
+                        "id": datos_formulario.get("payment_method_id"),
+                        "type": "credit_card",
+                        "token": datos_formulario.get("token"),
+                        "installments": datos_formulario.get("installments", 1)
+                    }
+                }
+            ]
         }
     }
 
     response = requests.post(
-        "https://api.mercadopago.com/v1/payments",
+        "https://api.mercadopago.com/v1/orders",
         headers=headers,
-        json=payment_payload
+        json=order_payload
     )
 
     resultado = response.json()
@@ -54,7 +66,7 @@ def cobrar_con_mercadopago(datos_formulario, total):
     print("Código de estado HTTP:", response.status_code)
     print("Respuesta completa de Mercado Pago:", resultado)
 
-    aprobado = resultado.get("status") == "approved"
+    aprobado = resultado.get("status") == "processed"
 
     return aprobado, resultado.get("status_detail")
 
