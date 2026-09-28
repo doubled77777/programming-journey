@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Administración — Sistema de Ventas</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<nav class="navbar">
+    <span class="brand">Sistema de Ventas</span>
+    <div class="nav-right">
+        <span id="nav-user"></span>
+        <a href="index.html">Nueva venta</a>
+        <a href="ventas.html">Mis ventas</a>
+        <button id="btn-logout" class="link-button">Cerrar sesión</button>
+    </div>
+</nav>
+
+<main class="container">
+    <div class="tabs">
+        <button class="tab-button active" data-tab="tab-productos">Productos</button>
+        <button class="tab-button" data-tab="tab-clientes">Clientes</button>
+        <button class="tab-button" data-tab="tab-usuarios">Usuarios</button>
+        <button class="tab-button" data-tab="tab-reportes">Reportes</button>
+    </div>
+
+    <!-- ===================== PRODUCTOS ===================== -->
+    <section id="tab-productos" class="tab-content">
+        <h2>Productos</h2>
+        <form id="form-producto" class="inline-form">
+            <input type="text" id="p-nombre" placeholder="Nombre" required>
+            <input type="text" id="p-descripcion" placeholder="Descripción">
+            <input type="number" id="p-precio" placeholder="Precio" step="0.01" min="0" required>
+            <input type="number" id="p-stock" placeholder="Stock" min="0" required>
+            <input type="text" id="p-categoria" placeholder="Categoría">
+            <button type="submit">Agregar producto</button>
+        </form>
+        <p id="producto-mensaje"></p>
+        <table class="data-table" id="tabla-admin-productos">
+            <thead><tr><th>ID</th><th>Nombre</th><th>Precio</th><th>Stock</th><th>Categoría</th><th>Activo</th><th></th></tr></thead>
+            <tbody></tbody>
+        </table>
+    </section>
+
+    <!-- ===================== CLIENTES ===================== -->
+    <section id="tab-clientes" class="tab-content" style="display:none">
+        <h2>Clientes</h2>
+        <form id="form-cliente" class="inline-form">
+            <input type="text" id="c-nombre" placeholder="Nombre" required>
+            <input type="email" id="c-email" placeholder="Email" required>
+            <input type="text" id="c-telefono" placeholder="Teléfono">
+            <button type="submit">Agregar cliente</button>
+        </form>
+        <p id="cliente-mensaje"></p>
+        <table class="data-table" id="tabla-admin-clientes">
+            <thead><tr><th>ID</th><th>Nombre</th><th>Email</th><th>Teléfono</th><th>Activo</th></tr></thead>
+            <tbody></tbody>
+        </table>
+    </section>
+
+    <!-- ===================== USUARIOS ===================== -->
+    <section id="tab-usuarios" class="tab-content" style="display:none">
+        <h2>Usuarios</h2>
+        <form id="form-usuario" class="inline-form">
+            <input type="text" id="u-nombre" placeholder="Nombre" required>
+            <input type="email" id="u-email" placeholder="Email" required>
+            <input type="password" id="u-password" placeholder="Contraseña" required>
+            <select id="u-rol">
+                <option value="VENDEDOR">VENDEDOR</option>
+                <option value="ADMIN">ADMIN</option>
+            </select>
+            <button type="submit">Agregar usuario</button>
+        </form>
+        <p id="usuario-mensaje"></p>
+        <table class="data-table" id="tabla-admin-usuarios">
+            <thead><tr><th>ID</th><th>Nombre</th><th>Email</th><th>Rol</th><th>Activo</th></tr></thead>
+            <tbody></tbody>
+        </table>
+    </section>
+
+    <!-- ===================== REPORTES ===================== -->
+    <section id="tab-reportes" class="tab-content" style="display:none">
+        <h2>Reportes</h2>
+
+        <h3>Ventas diarias</h3>
+        <table class="data-table" id="tabla-ventas-diarias">
+            <thead><tr><th>Día</th><th>Cantidad de ventas</th><th>Total vendido</th></tr></thead>
+            <tbody></tbody>
+        </table>
+
+        <h3>Productos más vendidos</h3>
+        <table class="data-table" id="tabla-mas-vendidos">
+            <thead><tr><th>Producto</th><th>Unidades vendidas</th><th>Total generado</th></tr></thead>
+            <tbody></tbody>
+        </table>
+
+        <h3>Stock bajo (umbral: 5)</h3>
+        <table class="data-table" id="tabla-stock-bajo">
+            <thead><tr><th>Producto</th><th>Stock</th><th>Categoría</th></tr></thead>
+            <tbody></tbody>
+        </table>
+    </section>
+</main>
+
+<script src="app.js"></script>
+<script>
+requireLogin();
+const user = getUsuario();
+if (user.rol !== 'ADMIN') {
+    alert('Acceso restringido a administradores.');
+    window.location.href = 'index.html';
+}
+document.getElementById('nav-user').textContent = `${user.nombre} (${user.rol})`;
+
+// --- Tabs ---
+document.querySelectorAll('.tab-button').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.style.display = 'none');
+        btn.classList.add('active');
+        document.getElementById(btn.dataset.tab).style.display = 'block';
+        if (btn.dataset.tab === 'tab-reportes') cargarReportes();
+    });
+});
+
+// --- Productos ---
+async function cargarProductosAdmin() {
+    const productos = await api('/productos?incluir_inactivos=true', 'GET');
+    document.querySelector('#tabla-admin-productos tbody').innerHTML = productos.map(p => `
+        <tr>
+            <td>${p.id}</td><td>${p.nombre}</td><td>$${p.precio.toFixed(2)}</td>
+            <td>${p.stock}</td><td>${p.categoria || '-'}</td>
+            <td>${p.activo ? 'Sí' : 'No'}</td>
+            <td>${p.activo ? `<button onclick="desactivarProducto(${p.id})">Desactivar</button>` : ''}</td>
+        </tr>
+    `).join('');
+}
+
+async function desactivarProducto(id) {
+    await api(`/productos/${id}`, 'DELETE');
+    cargarProductosAdmin();
+}
+
+document.getElementById('form-producto').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const mensajeEl = document.getElementById('producto-mensaje');
+    mensajeEl.textContent = '';
+    try {
+        await api('/productos', 'POST', {
+            nombre: document.getElementById('p-nombre').value,
+            descripcion: document.getElementById('p-descripcion').value,
+            precio: parseFloat(document.getElementById('p-precio').value),
+            stock: parseInt(document.getElementById('p-stock').value, 10),
+            categoria: document.getElementById('p-categoria').value,
+        });
+        e.target.reset();
+        cargarProductosAdmin();
+    } catch (err) {
+        mensajeEl.textContent = err.message;
+        mensajeEl.className = 'error-message';
+    }
+});
+
+// --- Clientes ---
+async function cargarClientesAdmin() {
+    const clientes = await api('/clientes?incluir_inactivos=true', 'GET');
+    document.querySelector('#tabla-admin-clientes tbody').innerHTML = clientes.map(c => `
+        <tr><td>${c.id}</td><td>${c.nombre}</td><td>${c.email}</td><td>${c.telefono || '-'}</td><td>${c.activo ? 'Sí' : 'No'}</td></tr>
+    `).join('');
+}
+
+document.getElementById('form-cliente').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const mensajeEl = document.getElementById('cliente-mensaje');
+    mensajeEl.textContent = '';
+    try {
+        await api('/clientes', 'POST', {
+            nombre: document.getElementById('c-nombre').value,
+            email: document.getElementById('c-email').value,
+            telefono: document.getElementById('c-telefono').value,
+        });
+        e.target.reset();
+        cargarClientesAdmin();
+    } catch (err) {
+        mensajeEl.textContent = err.message;
+        mensajeEl.className = 'error-message';
+    }
+});
+
+// --- Usuarios ---
+async function cargarUsuariosAdmin() {
+    const usuarios = await api('/usuarios', 'GET');
+    document.querySelector('#tabla-admin-usuarios tbody').innerHTML = usuarios.map(u => `
+        <tr><td>${u.id}</td><td>${u.nombre}</td><td>${u.email}</td><td>${u.rol}</td><td>${u.activo ? 'Sí' : 'No'}</td></tr>
+    `).join('');
+}
+
+document.getElementById('form-usuario').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const mensajeEl = document.getElementById('usuario-mensaje');
+    mensajeEl.textContent = '';
+    try {
+        await api('/usuarios', 'POST', {
+            nombre: document.getElementById('u-nombre').value,
+            email: document.getElementById('u-email').value,
+            password: document.getElementById('u-password').value,
+            rol: document.getElementById('u-rol').value,
+        });
+        e.target.reset();
+        cargarUsuariosAdmin();
+    } catch (err) {
+        mensajeEl.textContent = err.message;
+        mensajeEl.className = 'error-message';
+    }
+});
+
+// --- Reportes ---
+async function cargarReportes() {
+    const diarias = await api('/reportes/ventas-diarias', 'GET');
+    document.querySelector('#tabla-ventas-diarias tbody').innerHTML = diarias.map(d => `
+        <tr><td>${d.dia}</td><td>${d.cantidad_ventas}</td><td>$${d.total_vendido.toFixed(2)}</td></tr>
+    `).join('');
+
+    const masVendidos = await api('/reportes/productos-mas-vendidos', 'GET');
+    document.querySelector('#tabla-mas-vendidos tbody').innerHTML = masVendidos.map(p => `
+        <tr><td>${p.nombre}</td><td>${p.unidades_vendidas}</td><td>$${p.total_generado.toFixed(2)}</td></tr>
+    `).join('');
+
+    const stockBajo = await api('/reportes/stock-bajo?umbral=5', 'GET');
+    document.querySelector('#tabla-stock-bajo tbody').innerHTML = stockBajo.map(p => `
+        <tr><td>${p.nombre}</td><td>${p.stock}</td><td>${p.categoria || '-'}</td></tr>
+    `).join('');
+}
+
+document.getElementById('btn-logout').addEventListener('click', async () => {
+    await api('/auth/logout', 'POST');
+    localStorage.removeItem('usuario');
+    window.location.href = 'login.html';
+});
+
+cargarProductosAdmin();
+cargarClientesAdmin();
+cargarUsuariosAdmin();
+</script>
+</body>
+</html>

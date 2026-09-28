@@ -1,9 +1,0 @@
-.env
-__pycache__/
-*.pyc
-.pytest_cache/
-*.egg-info/
-venv/
-.venv/
-sales_system.log
-database/sales.db.backup_antes_de_migrar

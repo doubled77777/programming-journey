@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sistema de Ventas</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<nav class="navbar">
+    <span class="brand">Sistema de Ventas</span>
+    <div class="nav-right">
+        <span id="nav-user"></span>
+        <a href="ventas.html">Mis ventas</a>
+        <a id="nav-admin" href="admin.html" style="display:none">Administración</a>
+        <button id="btn-logout" class="link-button">Cerrar sesión</button>
+    </div>
+</nav>
+
+<main class="container">
+    <h2>Nueva venta</h2>
+
+    <div class="form-row">
+        <label for="select-cliente">Cliente</label>
+        <select id="select-cliente"></select>
+    </div>
+
+    <h3>Productos disponibles</h3>
+    <table class="data-table" id="tabla-productos">
+        <thead>
+            <tr><th>Nombre</th><th>Categoría</th><th>Precio</th><th>Stock</th><th>Cantidad</th><th></th></tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+
+    <h3>Carrito</h3>
+    <table class="data-table" id="tabla-carrito">
+        <thead>
+            <tr><th>Producto</th><th>Cantidad</th><th>Precio unit.</th><th>Subtotal</th><th></th></tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+    <p class="total">Total: $<span id="total-carrito">0.00</span></p>
+
+    <button id="btn-confirmar" class="primary-button">Confirmar venta</button>
+    <p id="venta-mensaje"></p>
+</main>
+
+<script src="app.js"></script>
+<script>
+requireLogin();
+
+let productos = [];
+let carrito = []; // { producto_id, nombre, precio, cantidad }
+let idempotencyKey = crypto.randomUUID();
+
+function renderUserBar() {
+    const user = getUsuario();
+    document.getElementById('nav-user').textContent = `${user.nombre} (${user.rol})`;
+    if (user.rol === 'ADMIN') document.getElementById('nav-admin').style.display = 'inline';
+}
+
+async function cargarClientes() {
+    const clientes = await api('/clientes', 'GET');
+    const select = document.getElementById('select-cliente');
+    select.innerHTML = clientes.map(c => `<option value="${c.id}">${c.nombre} (${c.email})</option>`).join('');
+}
+
+async function cargarProductos() {
+    productos = await api('/productos', 'GET');
+    const tbody = document.querySelector('#tabla-productos tbody');
+    tbody.innerHTML = productos.map(p => `
+        <tr>
+            <td>${p.nombre}</td>
+            <td>${p.categoria || '-'}</td>
+            <td>$${p.precio.toFixed(2)}</td>
+            <td>${p.stock}</td>
+            <td><input type="number" min="1" max="${p.stock}" value="1" id="cant-${p.id}" style="width:60px" ${p.stock === 0 ? 'disabled' : ''}></td>
+            <td><button ${p.stock === 0 ? 'disabled' : ''} onclick="agregarAlCarrito(${p.id})">Agregar</button></td>
+        </tr>
+    `).join('');
+}
+
+function agregarAlCarrito(productoId) {
+    const producto = productos.find(p => p.id === productoId);
+    const cantidad = parseInt(document.getElementById(`cant-${productoId}`).value, 10);
+    if (!cantidad || cantidad <= 0) return;
+
+    const existente = carrito.find(i => i.producto_id === productoId);
+    if (existente) {
+        existente.cantidad += cantidad;
+    } else {
+        carrito.push({ producto_id: productoId, nombre: producto.nombre, precio: producto.precio, cantidad });
+    }
+    renderCarrito();
+}
+
+function quitarDelCarrito(productoId) {
+    carrito = carrito.filter(i => i.producto_id !== productoId);
+    renderCarrito();
+}
+
+function renderCarrito() {
+    const tbody = document.querySelector('#tabla-carrito tbody');
+    let total = 0;
+    tbody.innerHTML = carrito.map(i => {
+        const subtotal = i.precio * i.cantidad;
+        total += subtotal;
+        return `
+            <tr>
+                <td>${i.nombre}</td>
+                <td>${i.cantidad}</td>
+                <td>$${i.precio.toFixed(2)}</td>
+                <td>$${subtotal.toFixed(2)}</td>
+                <td><button onclick="quitarDelCarrito(${i.producto_id})">Quitar</button></td>
+            </tr>
+        `;
+    }).join('');
+    document.getElementById('total-carrito').textContent = total.toFixed(2);
+}
+
+document.getElementById('btn-confirmar').addEventListener('click', async () => {
+    const mensajeEl = document.getElementById('venta-mensaje');
+    mensajeEl.textContent = '';
+    mensajeEl.className = '';
+
+    if (carrito.length === 0) {
+        mensajeEl.textContent = 'Agregue al menos un producto al carrito.';
+        mensajeEl.className = 'error-message';
+        return;
+    }
+
+    const clienteId = parseInt(document.getElementById('select-cliente').value, 10);
+    const items = carrito.map(i => ({ producto_id: i.producto_id, cantidad: i.cantidad }));
+
+    try {
+        const venta = await api('/ventas', 'POST', { cliente_id: clienteId, items }, idempotencyKey);
+        mensajeEl.textContent = `Venta #${venta.id} confirmada. Total: $${venta.total.toFixed(2)}`;
+        mensajeEl.className = 'success-message';
+        carrito = [];
+        idempotencyKey = crypto.randomUUID(); // nueva clave para la próxima venta
+        renderCarrito();
+        await cargarProductos(); // refresca stock actualizado
+    } catch (err) {
+        mensajeEl.textContent = err.message || 'Error al registrar la venta';
+        mensajeEl.className = 'error-message';
+    }
+});
+
+document.getElementById('btn-logout').addEventListener('click', async () => {
+    await api('/auth/logout', 'POST');
+    localStorage.removeItem('usuario');
+    window.location.href = 'login.html';
+});
+
+renderUserBar();
+cargarClientes();
+cargarProductos();
+</script>
+</body>
+</html>

@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mis ventas — Sistema de Ventas</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<nav class="navbar">
+    <span class="brand">Sistema de Ventas</span>
+    <div class="nav-right">
+        <span id="nav-user"></span>
+        <a href="index.html">Nueva venta</a>
+        <a id="nav-admin" href="admin.html" style="display:none">Administración</a>
+        <button id="btn-logout" class="link-button">Cerrar sesión</button>
+    </div>
+</nav>
+
+<main class="container">
+    <h2>Ventas</h2>
+    <table class="data-table" id="tabla-ventas">
+        <thead>
+            <tr><th>ID</th><th>Fecha</th><th>Cliente</th><th>Total</th><th>Estado</th><th></th></tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+
+    <div id="detalle-venta" style="display:none">
+        <h3>Detalle de la venta #<span id="detalle-id"></span></h3>
+        <table class="data-table">
+            <thead><tr><th>Producto</th><th>Cantidad</th><th>Precio unit.</th><th>Subtotal</th></tr></thead>
+            <tbody id="detalle-items"></tbody>
+        </table>
+    </div>
+</main>
+
+<script src="app.js"></script>
+<script>
+requireLogin();
+
+function renderUserBar() {
+    const user = getUsuario();
+    document.getElementById('nav-user').textContent = `${user.nombre} (${user.rol})`;
+    if (user.rol === 'ADMIN') document.getElementById('nav-admin').style.display = 'inline';
+}
+
+async function cargarVentas() {
+    const ventas = await api('/ventas', 'GET');
+    const tbody = document.querySelector('#tabla-ventas tbody');
+    tbody.innerHTML = ventas.map(v => `
+        <tr>
+            <td>${v.id}</td>
+            <td>${v.fecha}</td>
+            <td>${v.cliente_nombre}</td>
+            <td>$${v.total.toFixed(2)}</td>
+            <td>${v.estado}</td>
+            <td><button onclick="verDetalle(${v.id})">Ver detalle</button></td>
+        </tr>
+    `).join('');
+}
+
+async function verDetalle(ventaId) {
+    const venta = await api(`/ventas/${ventaId}`, 'GET');
+    document.getElementById('detalle-id').textContent = venta.id;
+    document.getElementById('detalle-items').innerHTML = venta.items.map(i => `
+        <tr>
+            <td>${i.nombre}</td>
+            <td>${i.cantidad}</td>
+            <td>$${i.precio_unitario.toFixed(2)}</td>
+            <td>$${i.subtotal.toFixed(2)}</td>
+        </tr>
+    `).join('');
+    document.getElementById('detalle-venta').style.display = 'block';
+}
+
+document.getElementById('btn-logout').addEventListener('click', async () => {
+    await api('/auth/logout', 'POST');
+    localStorage.removeItem('usuario');
+    window.location.href = 'login.html';
+});
+
+renderUserBar();
+cargarVentas();
+</script>
+</body>
+</html>
